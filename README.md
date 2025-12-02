@@ -1,3 +1,10 @@
+title: Reachy Mini Simple Visual Novel
+emoji: 🤖
+colorFrom: blue
+colorTo: purple
+sdk: gradio
+pinned: false
+
 ## Visual Novel Demo
 
 Run `python main.py` (or `uv run python main.py` if you prefer `uv`) to launch a Gradio-powered visual novel sandbox.
