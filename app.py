@@ -1436,7 +1436,7 @@ def main() -> None:
             fastapi_app,
             host="0.0.0.0",
             port=7860,
-            log_level="info",
+            log_level="debug",
             timeout_graceful_shutdown=1  # Quick shutdown
         )
     except KeyboardInterrupt:
