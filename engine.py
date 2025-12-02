@@ -4,10 +4,16 @@ from __future__ import annotations
 
 import copy
 import os
+import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
+logger = logging.getLogger(__name__)
+
 DEFAULT_BACKGROUND = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80"
+
+# Test URL to verify external images work
+TEST_IMAGE_URL = "https://picsum.photos/1200/800"
 POSITION_OFFSETS = {
     "left": "20%",
     "center": "50%",
@@ -15,20 +21,30 @@ POSITION_OFFSETS = {
 }
 
 
-# Asset helper functions
+# HuggingFace Space configuration
+HF_SPACE_REPO = "cduss/reachymini_vn_example"
+HF_BASE_URL = f"https://huggingface.co/spaces/{HF_SPACE_REPO}/resolve/main"
+
+# Asset helper functions - HuggingFace repo URLs
 def background_asset(filename: str) -> str:
-    """Get the URL to a background image in the assets directory."""
-    return os.path.join("user-assets", "backgrounds", filename)
+    """Get the URL for a background image from HF repo."""
+    url = f"{HF_BASE_URL}/assets/backgrounds/{filename}"
+    logger.info(f"Background asset: {url}")
+    return url
 
 
 def sprite_asset(filename: str) -> str:
-    """Get the URL to a sprite image in the assets directory."""
-    return os.path.join("user-assets", "sprites", filename)
+    """Get the URL for a sprite image from HF repo."""
+    url = f"{HF_BASE_URL}/assets/sprites/{filename}"
+    logger.info(f"Sprite asset: {url}")
+    return url
 
 
 def audio_asset(filename: str) -> str:
-    """Get the URL to an audio file in the assets directory."""
-    return os.path.join("user-assets", "audio", filename)
+    """Get the URL for an audio file from HF repo."""
+    url = f"{HF_BASE_URL}/assets/audio/{filename}"
+    logger.info(f"Audio asset: {url}")
+    return url
 
 
 def create_sprite_data_url(bg_color: str = "#fef3c7", border_color: str = "#ea580c") -> str:

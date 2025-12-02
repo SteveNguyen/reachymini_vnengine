@@ -5,15 +5,18 @@ from __future__ import annotations
 import os
 import urllib.parse
 import numpy as np
+import logging
 from typing import Optional
 
 import gradio as gr
 from fastrtc import WebRTC
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 
 from engine import SceneState, POSITION_OFFSETS, Choice, InputRequest
 from story import build_sample_story
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def passthrough_stream(frame):
@@ -703,16 +706,29 @@ async (currentDevices) => {
 """
 
 def load_dxl_script_js() -> str:
-    """Generate JavaScript to dynamically load the DXL script from static files."""
-    import time
-    timestamp = int(time.time())
+    """Inline the DXL script content directly."""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    js_path = os.path.join(script_dir, "web", "dxl_webserial.js")
+
+    try:
+        with open(js_path, 'r', encoding='utf-8') as f:
+            js_content = f.read()
+    except Exception as e:
+        js_content = f"console.error('[DXL] Failed to load script: {e}');"
+
+    # Properly escape for JavaScript template literal
+    js_content_escaped = js_content.replace('\\', '\\\\').replace('`', '\\`').replace('${', '\\${')
+
     return f"""
 () => {{
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.src = '/web/dxl_webserial.js?v={timestamp}';
-    script.onerror = () => console.error("[DXL] Failed to load motor control script");
-    document.head.appendChild(script);
+    try {{
+        // Execute inline script
+        const scriptFn = new Function({repr(js_content)});
+        scriptFn();
+        console.log('[DXL] Script loaded inline');
+    }} catch(e) {{
+        console.error('[DXL] Failed to execute:', e);
+    }}
 }}
 """
 
@@ -1414,33 +1430,20 @@ def build_app() -> gr.Blocks:
 
 
 def main() -> None:
-    """Launch the Visual Novel Gradio app with FastAPI for static file serving."""
-    # Create FastAPI app
-    fastapi_app = FastAPI()
+    """Launch the Visual Novel Gradio app."""
+    logger.info("=== Visual Novel App Startup ===")
+    logger.info("Using HuggingFace repo URLs for assets")
 
-    # Mount static files for assets and web scripts
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    assets_dir = os.path.join(script_dir, "assets")
-    web_dir = os.path.join(script_dir, "web")
-    fastapi_app.mount("/user-assets", StaticFiles(directory=assets_dir), name="user-assets")
-    fastapi_app.mount("/web", StaticFiles(directory=web_dir), name="web")
+    # Build Gradio app
+    demo = build_app()
 
-    # Build and mount Gradio app
-    gradio_app = build_app()
-    fastapi_app = gr.mount_gradio_app(fastapi_app, gradio_app, path="/")
-
-    # Launch with proper shutdown handling
-    import uvicorn
-    try:
-        uvicorn.run(
-            fastapi_app,
-            host="0.0.0.0",
-            port=7860,
-            log_level="debug",
-            timeout_graceful_shutdown=1  # Quick shutdown
-        )
-    except KeyboardInterrupt:
-        print("\n[INFO] Server stopped")
+    # Launch with SSR disabled
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=7860,
+        ssr_mode=False,
+        show_error=True,
+    )
 
 
 
