@@ -6,6 +6,7 @@ colorTo: purple
 sdk: gradio
 pinned: false
 app: app.py
+python_version: 3.12
 ---
 ## Visual Novel Demo
 - Install `uv`
