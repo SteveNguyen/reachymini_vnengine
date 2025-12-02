@@ -1434,7 +1434,7 @@ def main() -> None:
     try:
         uvicorn.run(
             fastapi_app,
-            host="127.0.0.1",
+            host="0.0.0.0",
             port=7860,
             log_level="info",
             timeout_graceful_shutdown=1  # Quick shutdown
