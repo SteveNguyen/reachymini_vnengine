@@ -5,11 +5,11 @@ colorFrom: blue
 colorTo: purple
 sdk: gradio
 pinned: false
-app: main.py
+app: app.py
 ---
 ## Visual Novel Demo
-
-Run `python main.py` (or `uv run python main.py` if you prefer `uv`) to launch a Gradio-powered visual novel sandbox.
+- Install `uv`
+- Run `uv run python app.py`.
 
 ### Features
 - Register characters with sprite URLs or inline SVG data-URIs (see `create_sprite_data_url`).
