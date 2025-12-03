@@ -262,7 +262,7 @@ def is_scene_accessible(scene: SceneState, active_paths: set) -> bool:
 
 def change_scene(
     story_state: dict, direction: int
-) -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict]:
+) -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict, dict]:
     scenes: List[SceneState] = story_state["scenes"]
     variables = story_state.get("variables", {})
     active_paths = story_state.get("active_paths", set())
@@ -282,9 +282,11 @@ def change_scene(
             robot_hint_text(False),
             gr.update(visible=False),
             gr.update(visible=False, choices=[]),
-            gr.update(visible=False),
-            gr.update(interactive=True),
-            gr.update(interactive=True),
+            "",  # input_prompt (string, not dict)
+            gr.update(visible=False),  # input_group
+            gr.update(value=""),  # user_input - clear it
+            gr.update(interactive=True),  # prev_btn
+            gr.update(interactive=True),  # next_btn
             gr.update(visible=False),  # right_column
         )
 
@@ -328,13 +330,14 @@ def change_scene(
         gr.update(visible=bool(choices), choices=[(c.text, i) for i, c in enumerate(choices)] if choices else [], value=None),
         f"### {input_req.prompt}" if input_req else "",
         gr.update(visible=bool(input_req)),
+        gr.update(value=""),  # user_input - clear it
         gr.update(interactive=nav_enabled),
         gr.update(interactive=nav_enabled),
         gr.update(visible=right_column_visible),  # right_column
     )
 
 
-def handle_choice(story_state: dict, choice_index: int) -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict]:
+def handle_choice(story_state: dict, choice_index: int) -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict, dict]:
     """Navigate to the scene selected by the choice."""
     scenes: List[SceneState] = story_state["scenes"]
     variables = story_state.get("variables", {})
@@ -375,6 +378,7 @@ def handle_choice(story_state: dict, choice_index: int) -> tuple[dict, str, str,
             gr.update(visible=bool(choices), choices=[(c.text, i) for i, c in enumerate(choices)] if choices else [], value=None),
             f"### {input_req.prompt}" if input_req else "",
             gr.update(visible=bool(input_req)),
+            gr.update(value=""),  # user_input - clear it
             gr.update(interactive=nav_enabled),
             gr.update(interactive=nav_enabled),
             gr.update(visible=right_column_visible),  # right_column
@@ -382,7 +386,7 @@ def handle_choice(story_state: dict, choice_index: int) -> tuple[dict, str, str,
     return change_scene(story_state, 0)
 
 
-def handle_input(story_state: dict, user_input: str) -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict]:
+def handle_input(story_state: dict, user_input: str) -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict, dict]:
     """Store user input and advance to next scene."""
     logger.info(f"Handling input: {user_input}")
     scenes: List[SceneState] = story_state["scenes"]
@@ -423,13 +427,14 @@ def handle_input(story_state: dict, user_input: str) -> tuple[dict, str, str, st
         gr.update(visible=bool(choices), choices=[(c.text, i) for i, c in enumerate(choices)] if choices else [], value=None),
         f"### {input_req.prompt}" if input_req else "",
         gr.update(visible=bool(input_req)),
+        gr.update(value=""),  # user_input - CRITICAL: clear it to prevent duplicate submissions
         gr.update(interactive=nav_enabled),
         gr.update(interactive=nav_enabled),
         gr.update(visible=right_column_visible),  # right_column
     )
 
 
-def load_initial_state() -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict]:
+def load_initial_state() -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict, dict]:
     logger.info("Loading initial state...")
     scenes = build_sample_story()
     story_state = {"scenes": scenes, "index": 0, "variables": {}, "active_paths": set()}
@@ -473,6 +478,7 @@ def load_initial_state() -> tuple[dict, str, str, str, str, dict, str, dict, str
         gr.update(visible=bool(choices), choices=[(c.text, i) for i, c in enumerate(choices)] if choices else [], value=None),
         f"### {input_req.prompt}" if input_req else "",
         gr.update(visible=bool(input_req)),
+        gr.update(value=""),  # user_input - clear it
         gr.update(interactive=nav_enabled),
         gr.update(interactive=nav_enabled),
         gr.update(visible=right_column_visible),  # right_column
@@ -1139,6 +1145,7 @@ def build_app() -> gr.Blocks:
             choice_radio,
             input_prompt,
             input_group,
+            user_input,  # Add user_input to clear it after submission
             prev_btn,
             next_btn,
             right_column,
