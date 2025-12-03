@@ -384,6 +384,7 @@ def handle_choice(story_state: dict, choice_index: int) -> tuple[dict, str, str,
 
 def handle_input(story_state: dict, user_input: str) -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict]:
     """Store user input and advance to next scene."""
+    logger.info(f"Handling input: {user_input}")
     scenes: List[SceneState] = story_state["scenes"]
     variables = story_state.get("variables", {})
     current_scene = scenes[story_state["index"]]
@@ -391,9 +392,11 @@ def handle_input(story_state: dict, user_input: str) -> tuple[dict, str, str, st
     if current_scene.input_request and user_input:
         variables[current_scene.input_request.variable_name] = user_input
         story_state["variables"] = variables
+        logger.info(f"Stored variable: {current_scene.input_request.variable_name}={user_input}")
 
     # Advance to next scene
     story_state["index"] = min(story_state["index"] + 1, len(scenes) - 1)
+    logger.info(f"Advanced to scene {story_state['index']}")
 
     html, dialogue, meta, show_camera, show_voice, show_motors, show_robot, choices, input_req = render_scene(
         scenes[story_state["index"]], story_state["index"], len(scenes), variables
@@ -401,6 +404,8 @@ def handle_input(story_state: dict, user_input: str) -> tuple[dict, str, str, st
 
     nav_enabled = not bool(choices) and not bool(input_req)
     right_column_visible = show_camera or show_voice or show_motors or show_robot
+
+    logger.info(f"After input: input_req visible={bool(input_req)}, choices visible={bool(choices)}")
 
     return (
         story_state,
@@ -425,12 +430,15 @@ def handle_input(story_state: dict, user_input: str) -> tuple[dict, str, str, st
 
 
 def load_initial_state() -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict]:
+    logger.info("Loading initial state...")
     scenes = build_sample_story()
     story_state = {"scenes": scenes, "index": 0, "variables": {}, "active_paths": set()}
     if scenes:
         html, dialogue, meta, show_camera, show_voice, show_motors, show_robot, choices, input_req = render_scene(
             scenes[0], 0, len(scenes), {}
         )
+        logger.info(f"Initial scene: choices={choices is not None}, input_req={input_req is not None}")
+        logger.info(f"HTML length: {len(html) if html else 0}")
     else:
         html, dialogue, meta, show_camera, show_voice, show_motors, show_robot, choices, input_req = (
             "",
@@ -446,6 +454,8 @@ def load_initial_state() -> tuple[dict, str, str, str, str, dict, str, dict, str
 
     nav_enabled = not bool(choices) and not bool(input_req)
     right_column_visible = show_camera or show_voice or show_motors or show_robot
+
+    logger.info(f"Initial state: input_req visible={bool(input_req)}, choices visible={bool(choices)}")
 
     return (
         story_state,
@@ -803,7 +813,14 @@ def play_scene_audio_js() -> str:
 
     console.log('[Audio] Playing:', audio_path);
     audio.src = audio_path;
-    audio.play().catch(err => console.error('[Audio] Playback failed:', err));
+
+    // Try to play with better error handling for HuggingFace Spaces
+    audio.play()
+        .then(() => console.log('[Audio] Playback started successfully'))
+        .catch(err => {
+            console.error('[Audio] Playback failed:', err.message);
+            console.error('[Audio] Note: Browsers may block autoplay. User interaction may be required.');
+        });
 }
 """
 
@@ -1436,6 +1453,9 @@ def main() -> None:
 
     # Build Gradio app
     demo = build_app()
+
+    # Enable queue for HuggingFace Spaces (required for proper component updates)
+    demo.queue(default_concurrency_limit=10)
 
     # Launch with SSR disabled
     demo.launch(
