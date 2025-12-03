@@ -1527,7 +1527,7 @@ def main() -> None:
     """Launch the Visual Novel Gradio app."""
     logger.info("=== Visual Novel App Startup ===")
     logger.info("Using HuggingFace repo URLs for assets")
-
+    logger.info(f"Gradio version: {gr.__version__}")
     # Build Gradio app
     demo = build_app()
 
