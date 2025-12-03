@@ -22,7 +22,7 @@ POSITION_OFFSETS = {
 
 
 # HuggingFace Space configuration
-HF_SPACE_REPO = "cduss/reachymini_vn_example"
+HF_SPACE_REPO = "SteveNguyen/reachymini_vn_example"
 HF_BASE_URL = f"https://huggingface.co/spaces/{HF_SPACE_REPO}/resolve/main"
 
 # Asset helper functions - HuggingFace repo URLs
