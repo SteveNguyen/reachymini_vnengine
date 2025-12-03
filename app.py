@@ -262,7 +262,7 @@ def is_scene_accessible(scene: SceneState, active_paths: set) -> bool:
 
 def change_scene(
     story_state: dict, direction: int
-) -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict, dict]:
+) -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict, dict, dict]:
     scenes: List[SceneState] = story_state["scenes"]
     variables = story_state.get("variables", {})
     active_paths = story_state.get("active_paths", set())
@@ -285,6 +285,7 @@ def change_scene(
             "",  # input_prompt (string, not dict)
             gr.update(visible=False),  # input_group
             gr.update(value=""),  # user_input - clear it
+            gr.update(interactive=False),  # input_submit_btn - disable it
             gr.update(interactive=True),  # prev_btn
             gr.update(interactive=True),  # next_btn
             gr.update(visible=False),  # right_column
@@ -331,13 +332,14 @@ def change_scene(
         f"### {input_req.prompt}" if input_req else "",
         gr.update(visible=bool(input_req)),
         gr.update(value=""),  # user_input - clear it
+        gr.update(interactive=bool(input_req)),  # input_submit_btn - only enable if input requested
         gr.update(interactive=nav_enabled),
         gr.update(interactive=nav_enabled),
         gr.update(visible=right_column_visible),  # right_column
     )
 
 
-def handle_choice(story_state: dict, choice_index: int) -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict, dict]:
+def handle_choice(story_state: dict, choice_index: int) -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict, dict, dict]:
     """Navigate to the scene selected by the choice."""
     scenes: List[SceneState] = story_state["scenes"]
     variables = story_state.get("variables", {})
@@ -379,6 +381,7 @@ def handle_choice(story_state: dict, choice_index: int) -> tuple[dict, str, str,
             f"### {input_req.prompt}" if input_req else "",
             gr.update(visible=bool(input_req)),
             gr.update(value=""),  # user_input - clear it
+            gr.update(interactive=bool(input_req)),  # input_submit_btn - only enable if input requested
             gr.update(interactive=nav_enabled),
             gr.update(interactive=nav_enabled),
             gr.update(visible=right_column_visible),  # right_column
@@ -386,17 +389,81 @@ def handle_choice(story_state: dict, choice_index: int) -> tuple[dict, str, str,
     return change_scene(story_state, 0)
 
 
-def handle_input(story_state: dict, user_input: str) -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict, dict]:
+def handle_input(story_state: dict, user_input: str) -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict, dict, dict]:
     """Store user input and advance to next scene."""
-    logger.info(f"Handling input: {user_input}")
+    logger.info(f"Handling input: '{user_input}'")
     scenes: List[SceneState] = story_state["scenes"]
     variables = story_state.get("variables", {})
     current_scene = scenes[story_state["index"]]
 
-    if current_scene.input_request and user_input:
-        variables[current_scene.input_request.variable_name] = user_input
-        story_state["variables"] = variables
-        logger.info(f"Stored variable: {current_scene.input_request.variable_name}={user_input}")
+    # Only process if current scene has an input request
+    if not current_scene.input_request:
+        logger.warning(f"handle_input called but scene {story_state['index']} has no input_request - ignoring")
+        # Return current state unchanged
+        html, dialogue, meta, show_camera, show_voice, show_motors, show_robot, choices, input_req = render_scene(
+            current_scene, story_state["index"], len(scenes), variables
+        )
+        nav_enabled = not bool(choices) and not bool(input_req)
+        right_column_visible = show_camera or show_voice or show_motors or show_robot
+        return (
+            story_state,
+            html,
+            dialogue,
+            meta,
+            camera_hint_text(show_camera),
+            gr.update(visible=show_camera),
+            voice_hint_text(show_voice),
+            gr.update(visible=show_voice),
+            motor_hint_text(show_motors),
+            gr.update(visible=show_motors),
+            robot_hint_text(show_robot),
+            gr.update(visible=show_robot),
+            gr.update(visible=bool(choices), choices=[(c.text, i) for i, c in enumerate(choices)] if choices else [], value=None),
+            f"### {input_req.prompt}" if input_req else "",
+            gr.update(visible=bool(input_req)),
+            gr.update(value=""),  # Clear input regardless
+            gr.update(interactive=bool(input_req)),  # input_submit_btn
+            gr.update(interactive=nav_enabled),
+            gr.update(interactive=nav_enabled),
+            gr.update(visible=right_column_visible),
+        )
+
+    # Only process if user provided input
+    if not user_input or not user_input.strip():
+        logger.warning(f"handle_input called with empty input - ignoring")
+        # Return current state unchanged
+        html, dialogue, meta, show_camera, show_voice, show_motors, show_robot, choices, input_req = render_scene(
+            current_scene, story_state["index"], len(scenes), variables
+        )
+        nav_enabled = not bool(choices) and not bool(input_req)
+        right_column_visible = show_camera or show_voice or show_motors or show_robot
+        return (
+            story_state,
+            html,
+            dialogue,
+            meta,
+            camera_hint_text(show_camera),
+            gr.update(visible=show_camera),
+            voice_hint_text(show_voice),
+            gr.update(visible=show_voice),
+            motor_hint_text(show_motors),
+            gr.update(visible=show_motors),
+            robot_hint_text(show_robot),
+            gr.update(visible=show_robot),
+            gr.update(visible=bool(choices), choices=[(c.text, i) for i, c in enumerate(choices)] if choices else [], value=None),
+            f"### {input_req.prompt}" if input_req else "",
+            gr.update(visible=bool(input_req)),
+            gr.update(value=""),  # Clear input regardless
+            gr.update(interactive=bool(input_req)),  # input_submit_btn
+            gr.update(interactive=nav_enabled),
+            gr.update(interactive=nav_enabled),
+            gr.update(visible=right_column_visible),
+        )
+
+    # Store the input
+    variables[current_scene.input_request.variable_name] = user_input
+    story_state["variables"] = variables
+    logger.info(f"Stored variable: {current_scene.input_request.variable_name}={user_input}")
 
     # Advance to next scene
     story_state["index"] = min(story_state["index"] + 1, len(scenes) - 1)
@@ -428,13 +495,14 @@ def handle_input(story_state: dict, user_input: str) -> tuple[dict, str, str, st
         f"### {input_req.prompt}" if input_req else "",
         gr.update(visible=bool(input_req)),
         gr.update(value=""),  # user_input - CRITICAL: clear it to prevent duplicate submissions
+        gr.update(interactive=bool(input_req)),  # input_submit_btn - disable after submission
         gr.update(interactive=nav_enabled),
         gr.update(interactive=nav_enabled),
         gr.update(visible=right_column_visible),  # right_column
     )
 
 
-def load_initial_state() -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict, dict]:
+def load_initial_state() -> tuple[dict, str, str, str, str, dict, str, dict, str, dict, str, dict, dict, str, dict, dict, dict, dict, dict, dict]:
     logger.info("Loading initial state...")
     scenes = build_sample_story()
     story_state = {"scenes": scenes, "index": 0, "variables": {}, "active_paths": set()}
@@ -479,6 +547,7 @@ def load_initial_state() -> tuple[dict, str, str, str, str, dict, str, dict, str
         f"### {input_req.prompt}" if input_req else "",
         gr.update(visible=bool(input_req)),
         gr.update(value=""),  # user_input - clear it
+        gr.update(interactive=bool(input_req)),  # input_submit_btn - only enable if input requested
         gr.update(interactive=nav_enabled),
         gr.update(interactive=nav_enabled),
         gr.update(visible=right_column_visible),  # right_column
@@ -1146,6 +1215,7 @@ def build_app() -> gr.Blocks:
             input_prompt,
             input_group,
             user_input,  # Add user_input to clear it after submission
+            input_submit_btn,  # Add submit button to disable it when not needed
             prev_btn,
             next_btn,
             right_column,
