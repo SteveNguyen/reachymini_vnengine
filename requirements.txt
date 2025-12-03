@@ -1,2 +1,3 @@
-fastrpc>=0.0.30
+gradio==5.50.0
+fastrpc==0.0.34
 numpy
